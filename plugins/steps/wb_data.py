@@ -36,15 +36,20 @@ def create_table(**kwargs):
         Column('sector1', String),
         Column('year', String),
         Column('year_close', String),
-        Column('totalamt', String),
+        Column('totalamt', Integer),
         Column('vvp', Float),
         Column('population', Float),
+        Column('electricity', String),
+        Column('rural', String),
         Column('target', Integer),
         UniqueConstraint('project_id_alt', name='unique_project_alt_constraint')
     )
     
     if not inspect(db_engine).has_table(wb_table.name):
         metadata.create_all(db_engine)
+        logging.info(LOG_FORMAT + 'Table created')
+    else:
+        logging.info(LOG_FORMAT + 'Table olrady exist')
 
 def extract(**kwargs):
     """
@@ -174,6 +179,9 @@ def transform(**kwargs):
         df = df[~df['countryname'].isin(non_countries)]
         # выбираем только нужные столбцы
         df = df[['id', 'countryname', 'sector1', 'countrycode', 'totalamt', 'year', 'year_close', 'target']]
+        #df["totalamt"] = pd.to_numeric(df["totalamt"], errors='ignore') # 
+        #df["totalamt"] = df["totalamt"].astype("int")
+        df["totalamt"] = df["totalamt"].str.replace('\d+', '', regex=True).astype("int")
         return df
     
     def transform_other(df: pd.DataFrame, non_countries: List[str], target_column: str)  -> pd.DataFrame:
@@ -210,12 +218,21 @@ def transform(**kwargs):
     # собираем общий файл с экономическими индикаторами
     df_vvp = transform_other(data['df_vvp'], data['non_countries'], 'vvp')
     df_population  = transform_other(data['df_population'], data['non_countries'], 'population')
+    df_electricity  = transform_other(data['df_electricity'], data['non_countries'], 'electricity')
+    df_rural  = transform_other(data['df_rural'], data['non_countries'], 'rural')
     df_indicator = df_vvp.merge(
-        df_population,
-        on=('Country Name', 'Country Code', 'year'),
+        df_population.merge(
+            df_electricity.merge(
+                df_rural,
+                on=('Country Name', 'Country Code', 'year')
+            ),
+            on=('Country Name', 'Country Code', 'year')
+        ),
+        on=('Country Name', 'Country Code', 'year')
     )
+    
     # оставляем только нужные столбца
-    df_indicator.columns = ['countryname', 'countrycode', 'year', 'vvp', 'population']
+    df_indicator.columns = ['countryname', 'countrycode', 'year', 'vvp', 'population','electricity','rural']
     logging.info(LOG_FORMAT + f'Number of clear data -- {df_indicator.countrycode.isna().sum()}')
     logging.info(LOG_FORMAT + f'Number of clear data -- {df_project.countrycode.isna().sum()}')
     logging.info(LOG_FORMAT + 'Merging data')

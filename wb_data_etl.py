@@ -189,12 +189,20 @@ def transform(data: Dict) -> pd.DataFrame:
     # собираем общий файл с экономическими индикаторами
     df_vvp = transform_other(data['df_vvp'], data['non_countries'], 'vvp')
     df_population  = transform_other(data['df_population'], data['non_countries'], 'population')
+    df_electricity  = transform_other(data['df_electricity'], data['non_countries'], 'electricity')
+    df_rural  = transform_other(data['df_rural'], data['non_countries'], 'rural')
     df_indicator = df_vvp.merge(
-        df_population,
-        on=('Country Name', 'Country Code', 'year'),
+        df_population.merge(
+            df_electricity.merge(
+                df_rural,
+                on=('Country Name', 'Country Code', 'year')
+            ),
+            on=('Country Name', 'Country Code', 'year')
+        ),
+        on=('Country Name', 'Country Code', 'year')
     )
     # оставляем только нужные столбца
-    df_indicator.columns = ['countryname', 'countrycode', 'year', 'vvp', 'population']
+    df_indicator.columns = ['countryname', 'countrycode', 'year', 'vvp', 'population','electricity','rural']
     logging.info(LOG_FORMAT + f'Number of clear data -- {df_indicator.countrycode.isna().sum()}')
     logging.info(LOG_FORMAT + f'Number of clear data -- {df_project.countrycode.isna().sum()}')
     logging.info(LOG_FORMAT + 'Merging data')

@@ -36,11 +36,11 @@ def create_table(**kwargs):
         Column('sector1', String),
         Column('year', String),
         Column('year_close', String),
-        Column('totalamt', Integer),
+        Column('totalamt', Float),
         Column('vvp', Float),
         Column('population', Float),
-        Column('electricity', String),
-        Column('rural', String),
+        Column('electricity', Float),
+        Column('rural', Float),
         Column('target', Integer),
         UniqueConstraint('project_id_alt', name='unique_project_alt_constraint')
     )
@@ -181,7 +181,7 @@ def transform(**kwargs):
         df = df[['id', 'countryname', 'sector1', 'countrycode', 'totalamt', 'year', 'year_close', 'target']]
         #df["totalamt"] = pd.to_numeric(df["totalamt"], errors='ignore') # 
         #df["totalamt"] = df["totalamt"].astype("int")
-        df["totalamt"] = df["totalamt"].str.replace('\d+', '', regex=True).astype("int")
+        df["totalamt"] = df["totalamt"].astype(str).str.replace('[^0-9\.]', '',regex=True).astype(float)
         return df
     
     def transform_other(df: pd.DataFrame, non_countries: List[str], target_column: str)  -> pd.DataFrame:

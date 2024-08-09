@@ -16,6 +16,8 @@ from airflow.decorators import dag, task
 from sqlalchemy import (
     Table, Column, Float, Integer,
     MetaData, String, UniqueConstraint, inspect)
+from datetime import timedelta
+from steps.messages import send_telegram_success_message, send_telegram_failure_message
 
 sys.path.append('../')
 sys.path.append('../../')
@@ -25,7 +27,9 @@ LOG_FORMAT  = f'WB_DATA DAG - '
 @dag(
     schedule='@once',
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
-    tags=["WorldBank", "ETL", "Test"]
+    tags=["WorldBank", "ETL", "Test"],
+    retries = 3,
+    retry_delay=timedelta(minutes=5)
 )
 def prepare_wb_data():
     @task()
